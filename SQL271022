@@ -1,0 +1,167 @@
+27 Ekim 2022 Veritabanı 2
+
+USE Bahçeişleri_
+GO
+SELECT COUNT(*) FROM Müşteriler --142 
+SELECT COUNT(*) FROM Siparişler --87
+--Hangi müşteri hangi sipairşi vermiştir
+SELECT COUNT(*) FROM Siparişler INNER JOIN Müşteriler
+ON Siparişler.MüşteriNO = Müşteriler.MüşteriNo --10
+
+
+
+
+--Tablo birleştirmek 
+--1. INNER JOIN : İç Birleştirme : Birleştirme koşulunu sağlayan kayıtları listeler.
+
+--2. OUTER JOIN : Dış Birleştirme : İç birleştirmeye ek olarak birleştirme koşulunu  
+--sağlamayan kayıtları da listelemek için kullanılır:
+
+--a) Left Outer Joın : Sol Dış Birleştirme :
+--Birleştirme koşulunu sağlayan kayıtlara ek olarak,
+--soldaki tablonun birleştirme koşulunu 
+--SAĞLAMAYAN kayıtlarını da listeler
+--SELECT * FROM Soltablo LEFT OUTER JOIN SağTablo 
+--ON BirleştirmeKoşulu
+
+--b) Right Outer Joın : Sağ Dış Birleştirme :
+--Birleştirme koşulunu sağlayan kayıtlara ek olarak,
+--sağdaki tablonun birleştirme koşulunu
+-- SAĞLAMAYAN kayıtlarını da listeler
+--SELECT * FROM Soltablo RİGHT OUTER JOIN SağTablo 
+--ON BirleştirmeKoşulu
+
+--c) Full Outer Joın : Tam Dış Birleştirme :
+--Birleştirme koşulunu sağlayan kayıtlara ek olarak,
+--hem Soldaki hem de Sağdaki tablonun birleştirme koşulunu
+--SAĞLAMAYAN kayıtlarını listeler
+--SELECT * FROM Soltablo FULL OUTER JOIN SağTablo 
+--ON BirleştirmeKoşulu
+
+--3. Çapraz Birleştirme
+--CROSS JOIN : Soldaki tablonun her bir satırıyla
+--Sağdaki her bir satırını eşleştirmek için kullanılır
+--SELECT * FROM Soltablo FULL CROSS JOIN SağTablo
+
+---------------------------------------------------
+-- Sipariş vermiş müşterilerle beraber sipariş vermemiş müşterileri listeleyiniz
+SELECT Adı, Soyadı, SiparişNo FROM Müşteriler LEFT OUTER JOIN Siparişler
+ON Müşteriler.MüşteriNo = Siparişler.MüşteriNO
+ORDER BY SiparişNo ASC
+-- Müşteriler Tablosundan Birleştirme koşulunu sağlamayan kayıtlar isteniyor.
+-- Müşteriler solda mı sağda mı ?
+---------------------------------------
+-- Sipariş vermiş müşterilerle beraber Kimin verdiği belli olmayan siparişleride  listeleyiniz
+SELECT Adı, Soyadı, SiparişNo FROM Müşteriler RIGHT OUTER JOIN Siparişler
+ON Müşteriler.MüşteriNo = Siparişler.MüşteriNO
+ORDER BY SiparişNo ASC
+--Birleştirme koşulunu sağlamayan kayıtlar isteniyor, Siparişler solda mı sağda mı ?
+--------------------------------------
+-- Sipariş vermiş müşterilerle beraber,(iç) sipariş vermemiş müşteriler, (sol)
+--Kimin verdiği belli olmayan siparişleride  listeleyiniz (SAĞ)
+SELECT Adı, Soyadı, SiparişNo FROM Müşteriler FULL OUTER JOIN Siparişler
+ON Müşteriler.MüşteriNo = Siparişler.MüşteriNO
+ORDER BY SiparişNo ASC
+--Her bir müşteriyle her bir çalışanı eşleştiriniz
+SELECT COUNT(*) FROM Müşteriler --113 
+SELECT COUNT(*) FROM Çalışanlar --16
+SELECT COUNT(*) FROM Müşteriler CROSS JOIN Çalışanlar --1808
+SELECT M.Adı, M.Soyadı, C.Adı, C.Soyadı 
+FROM Müşteriler AS M
+CROSS JOIN Çalışanlar AS C 
+-------------------------
+/* VIEW : Görünüm 
+Vt Nesnelerdir. Tablo gibi sorgulanırlar, gerçekte tablo değildirler. İçlerinde bir select ifadesi 
+barındırırlar, veri içermezler. Kullanıcıya tabloları daha iyi sunmak(INNER JOIN Vb.) ya da bazı verileri
+kullanıcıdan gizlemek amacıyla kullanılırlar. 
+Insert, Update ya da Delete uygulandığında bu komutları temsil ettikleri tabloya aktarırlar.
+Görünümü oluşturan sorguda ORDER BY kullanılmaz. */
+-- Yukarıda yazdığımız FULL OUTER HOIN örneğinden bir görünüm oluşturalım
+GO
+CREATE VIEW TümMüşteriVeSiparişleriGör 
+AS
+SELECT Adı, Soyadı, SiparişNo FROM Müşteriler FULL OUTER JOIN Siparişler
+ON Müşteriler.MüşteriNo = Siparişler.MüşteriNO
+GO
+SELECT * FROM TümMüşteriVeSiparişleriGör 
+ORDER BY SiparişNo DESC
+-- Bir VT nesnesini oluşturan sql ifadesini görmek için sistem sakli yordamlarından: 
+sp_helptext TümMüşteriVeSiparişleriGör 
+--Nesneyi oluşturan SQL scyi Kriptolayarak gizleyebilirsiniz :
+--Bunun İçin görünümü değiştirmemiz lazım 
+GO
+ALTER VIEW TümMüşteriVeSiparişleriGör 
+WITH ENCRYPTION
+AS
+SELECT Adı, Soyadı, SiparişNo FROM Müşteriler FULL OUTER JOIN Siparişler
+ON Müşteriler.MüşteriNo = Siparişler.MüşteriNO
+GO
+sp_helptext TümMüşteriVeSiparişleriGör
+--Görünümü Silelim
+DROP VIEW TümMüşteriVeSiparişleriGör
+-- 3 büyük ile birer müşteri temsilcisi atanıyor
+--Her Müşteri temsilcisinin sorumlu olduğu kentin müşterilerini görüp, diğer kentleri görmesini,değiştirmesini,
+--silemsini engellemek istiyoruz, bu nasıl yapılır??
+-- Koşulun sürekli kontrol edilmesi için WITH CHECK OPTION yazılır
+GO
+CREATE VIEW istanbulMüş 
+AS
+SELECT * FROM Müşteriler WHERE İl='İstanbul' 
+WITH CHECK OPTION
+GO
+CREATE VIEW izmirMüş
+AS
+SELECT * FROM Müşteriler WHERE İl='İzmir'
+WITH CHECK OPTION
+GO
+CREATE VIEW ankaraMüş
+AS
+SELECT * FROM Müşteriler WHERE İl='Ankara'
+WITH CHECK OPTION
+GO
+SELECT * FROM izmirMüş
+SELECT * FROM istanbulMüş
+SELECT * FROM ankaraMüş
+-- Ankara Müşteri Temsilcisi müşterisini , İstenbula kaydırmak istese?
+UPDATE ankaraMüş
+SET İl='İstanbul' 
+WHERE Adı='Yusuf' AND Soyadı='Açıkel' -- başarısız
+-- ankaralı müşteri temsilcisi izmirli müşteri kaydetse ?
+INSERT INTO ankaraMüş (MüşteriNo, Adı,Soyadı,İl)
+VALUES ('DENCE','Cengiz','Deniz','İzmir')
+-- Ankaralı Müşteri Temsilcisi tüm izmirli müşterileri silse?
+DELETE FROM ankaraMüş WHERE İl='İzmir'
+-- Ankaralı Müşteri Temsilcisi ankaralı müşterileri kaydetsin?
+INSERT INTO ankaraMüş (MüşteriNo, Adı,Soyadı,İl)
+VALUES ('DENCE','Cengiz','Deniz','Ankara')
+--Ankaralı Müşteri Temsilcisi Müşterisini güncellesin
+UPDATE ankaraMüş
+SET İlçe= 'Ulus', Telefon ='3121234589'
+WHERE MüşteriNo= 'DENCE'
+--Ankaralı Müşteri Temsilcisi Müşterisini silsin
+DELETE FROM ankaraMüş WhERE MüşteriNo='DENCE'
+---------------------------------------------------------------------
+Bahceislerigorunum kodlari
+
+SELECT        dbo.Siparişler.SiparişNo, dbo.Çalışanlar.Adı + N' ' + dbo.Çalışanlar.Soyadı AS [Adı Ve Soyadı], dbo.Çalışanlar.Adı AS ÇalışanAdı, dbo.Çalışanlar.Soyadı AS ÇalışanSoyadı, dbo.Nakliyeciler.ŞİRKET AS KargoFirması, 
+                         dbo.Ürünler.ÜrünAd AS Ürünler, dbo.[Sipariş Detayları].BirimFiyat, dbo.[Sipariş Detayları].Miktar, dbo.[Sipariş Detayları].İndirim, dbo.Kategoriler.KategoriAdı AS Kategorisi, 
+                         (dbo.[Sipariş Detayları].BirimFiyat * dbo.[Sipariş Detayları].Miktar) * (1 - dbo.[Sipariş Detayları].İndirim) AS Tutar, dbo.Satıcılar.FirmaAdı AS TedarikçiFirma
+FROM            dbo.Satıcılar INNER JOIN
+                         dbo.Çalışanlar INNER JOIN
+                         dbo.[Sipariş Detayları] INNER JOIN
+                         dbo.[satış fiyatları] ON dbo.[Sipariş Detayları].SiparişNo = dbo.[satış fiyatları].SiparişNo INNER JOIN
+                         dbo.Siparişler ON dbo.[Sipariş Detayları].SiparişNo = dbo.Siparişler.SiparişNo ON dbo.Çalışanlar.ÇalışanNo = dbo.Siparişler.ÇalışanNo INNER JOIN
+                         dbo.Müşteriler ON dbo.Siparişler.MüşteriNO = dbo.Müşteriler.MüşteriNo INNER JOIN
+                         dbo.Nakliyeciler ON dbo.Siparişler.Nakliyeci = dbo.Nakliyeciler.NAKLİYECİNO INNER JOIN
+                         dbo.Ürünler ON dbo.[Sipariş Detayları].ÜrünNo = dbo.Ürünler.ÜrünNo INNER JOIN
+                         dbo.Kategoriler ON dbo.Ürünler.KategoriNo = dbo.Kategoriler.KategoriNo ON dbo.Satıcılar.SatıcıFirmaNo = dbo.Ürünler.SatıcıFirmaNo CROSS JOIN
+                         dbo.Sorgu1 CROSS JOIN
+                         dbo.EnvanterDeğeri
+
+
+
+
+
+
+
+
